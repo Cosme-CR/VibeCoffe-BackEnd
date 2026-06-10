@@ -1,0 +1,729 @@
+
+openapi: 3.0.3
+info:
+  title: Vibe Coffee - API
+  description: |
+    API destinada ao sistema de vendas online da **Vibe Coffee** — cafeteria inspirada na estética e nostalgia dos anos 80.
+
+    Contempla duas áreas principais:
+    - **Área Pública (Cliente/Visitante):** visualização do catálogo de produtos.
+    - **Área Administrativa (Admin):** gestão completa de produtos e categorias via painel autenticado.
+
+    ---
+
+    ## 🔐 Autenticação JWT (Spring Security 6)
+
+    Esta API utiliza autenticação stateless com **JSON Web Token (JWT)**.
+
+    ### Fluxo de autenticação:
+    1. Faça uma requisição `POST /v1/vibe/coffee/auth/login` com `usuario` e `senha`.
+    2. A API retorna um **token JWT** no campo `token`.
+    3. Nas requisições protegidas, envie o token no header:
+       ```
+       Authorization: Bearer <seu_token_aqui>
+       ```
+    4. O token é validado pelo filtro do Spring Security a cada requisição.
+
+    > ⚠️ Rotas **sem** o cadeado são públicas. Rotas **com** o cadeado exigem o token JWT.
+    > Para testar no Swagger UI, clique em **Authorize** e insira: `Bearer <token>`
+  version: 1.0.0
+servers:
+  - url: /
+
+paths:
+
+  # ==========================================
+  # AUTH
+  # ==========================================
+  /v1/vibe/coffee/auth/login:
+    post:
+      tags:
+        - auth
+      summary: Login do administrador — gera o token JWT
+      description: |
+        Autentica o administrador único do sistema via **Spring Security 6 + JWT**. (RF-A01 / RNF-A02 / RNF-A03)
+
+        **Fluxo interno (Spring Security 6):**
+        - O Spring Security recebe as credenciais e aciona o `AuthenticationManager`.
+        - O `UserDetailsService` busca o usuário no banco pelo campo `usuario`.
+        - A senha informada é comparada com o hash armazenado via **BCryptPasswordEncoder** (RNF-A02).
+        - Autenticação bem-sucedida: o `JwtService` gera e assina o token com a chave secreta.
+        - O token retornado deve ser enviado no header `Authorization: Bearer <token>` nas rotas protegidas.
+
+        **Esta é a única rota pública da área administrativa — não exige token.**
+      requestBody:
+        description: Credenciais de acesso do administrador
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              usuario: "admin@vibecoffee.com"
+              senha: "suaSenha123"
+      responses:
+        '200':
+          description: Login realizado com sucesso — token JWT gerado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkB2aWJlY29mZmVlLmNvbSIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoxNzAwMDg2NDAwfQ.assinatura"
+                tipo: "Bearer"
+        '401':
+          description: Credenciais inválidas — usuário não encontrado ou senha incorreta
+        '403':
+          description: Acesso proibido
+        '500':
+          description: Erro interno do servidor
+
+  # ==========================================
+  # USUARIO
+  # ==========================================
+  /v1/vibe/coffee/usuario:
+    post:
+      tags:
+        - usuario
+      summary: Cadastra o administrador
+      description: |
+        Cria o usuário administrador do sistema. (RF-A01 / RNF-A02)
+
+        A senha será armazenada de forma criptografada via **BCryptPasswordEncoder** — nunca em texto puro.
+      requestBody:
+        description: JSON com os dados do administrador
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Usuario'
+      responses:
+        '201':
+          description: Administrador criado com sucesso
+        '400':
+          description: Dados inválidos
+        '500':
+          description: Erro interno do servidor
+    get:
+      tags:
+        - usuario
+      summary: Lista os usuários cadastrados
+      description: Retorna todos os usuários do sistema. Requer autenticação. (RNF-A03)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Listagem realizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsuarioResponse'
+        '401':
+          description: Token JWT ausente ou inválido
+        '403':
+          description: Acesso proibido
+        '404':
+          description: Nenhum usuário encontrado
+
+  /v1/vibe/coffee/usuario/{id}:
+    get:
+      tags:
+        - usuario
+      summary: Busca um usuário pelo ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Usuário encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioResponse'
+        '401':
+          description: Token JWT ausente ou inválido
+        '403':
+          description: Acesso proibido
+        '404':
+          description: Usuário não encontrado
+    put:
+      tags:
+        - usuario
+      summary: Atualiza um usuário pelo ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Usuario'
+      responses:
+        '200':
+          description: Atualizado com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Token JWT ausente ou inválido
+        '403':
+          description: Acesso proibido
+        '404':
+          description: Usuário não encontrado
+    delete:
+      tags:
+        - usuario
+      summary: Exclui um usuário pelo ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Excluído com sucesso
+        '401':
+          description: Token JWT ausente ou inválido
+        '403':
+          description: Acesso proibido
+        '404':
+          description: Usuário não encontrado
+
+  # ==========================================
+  # CATEGORIA
+  # ==========================================
+  /v1/vibe/coffee/categoria:
+    post:
+      tags:
+        - categoria
+      summary: Cadastra uma nova categoria
+      description: Cria uma nova categoria de produtos. Requer autenticação. (RF-A08)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Categoria'
+      responses:
+        '201':
+          description: Categoria criada com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Token JWT ausente ou inválido
+        '403':
+          description: Acesso proibido
+        '500':
+          description: Erro interno do servidor
+    get:
+      tags:
+        - categoria
+      summary: Lista todas as categorias
+      description: |
+        Retorna todas as categorias cadastradas.
+        Utilizado também na área pública para os filtros de busca — **não exige token**. (RF-C03 / RF-A08)
+      responses:
+        '200':
+          description: Listagem realizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoriaResponse'
+        '404':
+          description: Nenhuma categoria encontrada
+
+  /v1/vibe/coffee/categoria/{id}:
+    get:
+      tags:
+        - categoria
+      summary: Busca uma categoria pelo ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Categoria encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoriaResponse'
+        '404':
+          description: Categoria não encontrada
+    put:
+      tags:
+        - categoria
+      summary: Atualiza uma categoria pelo ID
+      description: Permite ao administrador editar o nome de uma categoria. (RF-A08)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Categoria'
+      responses:
+        '200':
+          description: Atualizada com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Token JWT ausente ou inválido
+        '403':
+          description: Acesso proibido
+        '404':
+          description: Categoria não encontrada
+    delete:
+      tags:
+        - categoria
+      summary: Exclui uma categoria pelo ID
+      description: Remove uma categoria do sistema. (RF-A08)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Excluída com sucesso
+        '401':
+          description: Token JWT ausente ou inválido
+        '403':
+          description: Acesso proibido
+        '404':
+          description: Categoria não encontrada
+
+  # ==========================================
+  # PRODUTO
+  # ==========================================
+  /v1/vibe/coffee/produto:
+    post:
+      tags:
+        - produto
+      summary: Cadastra um novo produto
+      description: Cria um novo produto no catálogo. Todos os campos são obrigatórios. Requer autenticação. (RF-A02 / RF-A09)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Produto'
+      responses:
+        '201':
+          description: Produto criado com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Token JWT ausente ou inválido
+        '403':
+          description: Acesso proibido
+        '500':
+          description: Erro interno do servidor
+    get:
+      tags:
+        - produto
+      summary: Lista todos os produtos ativos (área pública)
+      description: |
+        Retorna todos os produtos com status **Disponível** cadastrados no banco de dados.
+        Utilizado pelo frontend público ao carregar a página — **não exige token**. (RF-C01 / RF-C02)
+
+        Suporta filtros opcionais via query parameters.
+      parameters:
+        - name: categoria_id
+          in: query
+          required: false
+          description: Filtra os produtos por categoria (RF-C03)
+          schema:
+            type: integer
+            format: int64
+        - name: busca
+          in: query
+          required: false
+          description: Filtra os produtos por texto no nome (RF-C04)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Listagem realizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProdutoResponse'
+        '404':
+          description: Nenhum produto encontrado
+
+  /v1/vibe/coffee/produto/admin:
+    get:
+      tags:
+        - produto
+      summary: Lista todos os produtos (painel admin)
+      description: |
+        Retorna todos os produtos cadastrados, independente do status (disponível ou indisponível).
+        Requer autenticação. (RF-A03 / RF-A07)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: categoria_id
+          in: query
+          required: false
+          description: Ordena/filtra por categoria (RF-A03)
+          schema:
+            type: integer
+            format: int64
+        - name: busca
+          in: query
+          required: false
+          description: Pesquisa produto por nome no painel admin (RF-A07)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Listagem realizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProdutoResponse'
+        '401':
+          description: Token JWT ausente ou inválido
+        '403':
+          description: Acesso proibido
+        '404':
+          description: Nenhum produto encontrado
+
+  /v1/vibe/coffee/produto/{id}:
+    get:
+      tags:
+        - produto
+      summary: Busca um produto pelo ID
+      description: |
+        Retorna os detalhes completos de um produto para exibição no modal.
+        Imagem ampliada, ingredientes, alérgenos e notas de sabor. (RF-C05)
+
+        **Rota pública — não exige token.**
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Produto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProdutoResponse'
+        '404':
+          description: Produto não encontrado
+    put:
+      tags:
+        - produto
+      summary: Atualiza um produto pelo ID
+      description: Permite ao administrador editar as informações de qualquer produto cadastrado. (RF-A04 / RF-A09)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Produto'
+      responses:
+        '200':
+          description: Atualizado com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Token JWT ausente ou inválido
+        '403':
+          description: Acesso proibido
+        '404':
+          description: Produto não encontrado
+    delete:
+      tags:
+        - produto
+      summary: Exclui um produto pelo ID
+      description: |
+        Remove o produto do sistema. O item deixa de ser exibido na área pública. (RF-A05 / RN-G04)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Excluído com sucesso
+        '401':
+          description: Token JWT ausente ou inválido
+        '403':
+          description: Acesso proibido
+        '404':
+          description: Produto não encontrado
+
+  /v1/vibe/coffee/produto/{id}/disponibilidade:
+    patch:
+      tags:
+        - produto
+      summary: Altera a disponibilidade de um produto (toggle)
+      description: |
+        Permite ao administrador marcar um produto como **Disponível** ou **Indisponível**,
+        ocultando ou exibindo o item na área pública instantaneamente. (RF-A06 / RN-G05)
+
+        Utiliza `PATCH` por ser uma atualização parcial — apenas o campo `disponivel` é alterado.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisponibilidadeRequest'
+            example:
+              disponivel: false
+      responses:
+        '200':
+          description: Disponibilidade atualizada com sucesso
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Token JWT ausente ou inválido
+        '403':
+          description: Acesso proibido
+        '404':
+          description: Produto não encontrado
+
+# ==========================================
+# COMPONENTS
+# ==========================================
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Token JWT gerado via `POST /v1/vibe/coffee/auth/login`.
+        Insira o valor no formato: `Bearer <token>`
+
+  schemas:
+
+    LoginRequest:
+      type: object
+      required:
+        - usuario
+        - senha
+      properties:
+        usuario:
+          type: string
+          description: E-mail ou nome de usuário do administrador
+          example: "admin@vibecoffee.com"
+        senha:
+          type: string
+          description: Senha em texto puro — será comparada ao hash BCrypt armazenado
+          example: "suaSenha123"
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Token JWT assinado — válido por tempo configurado no JwtService
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        tipo:
+          type: string
+          description: Tipo do token — sempre "Bearer"
+          example: "Bearer"
+
+    Usuario:
+      type: object
+      required:
+        - nome
+        - usuario
+        - senha
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        nome:
+          type: string
+          maxLength: 45
+          example: "Administrador Vibe Coffee"
+        usuario:
+          type: string
+          maxLength: 254
+          description: Usado como identificador no login (subject do JWT)
+          example: "admin@vibecoffee.com"
+        senha:
+          type: string
+          maxLength: 256
+          description: Enviada em texto puro — armazenada como hash BCrypt (RNF-A02)
+          example: "suaSenha123"
+
+    UsuarioResponse:
+      type: object
+      description: Objeto de resposta — senha nunca é retornada (RNF-A02)
+      properties:
+        id:
+          type: integer
+          format: int64
+        nome:
+          type: string
+        usuario:
+          type: string
+
+    Categoria:
+      type: object
+      required:
+        - nome
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        nome:
+          type: string
+          maxLength: 100
+          example: "Bebidas Quentes"
+
+    CategoriaResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        nome:
+          type: string
+          example: "Bebidas Quentes"
+
+    Produto:
+      type: object
+      required:
+        - nome
+        - descricao
+        - foto
+        - preco
+        - categoria_id
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        nome:
+          type: string
+          maxLength: 45
+          example: "Cappuccino 80s"
+        descricao:
+          type: string
+          maxLength: 300
+          example: "Cappuccino cremoso com notas de caramelo e baunilha."
+        foto:
+          type: string
+          maxLength: 254
+          description: URL da imagem do produto
+          example: "https://cdn.vibecoffee.com/cappuccino.jpg"
+        preco:
+          type: number
+          format: float
+          example: 14.90
+        disponivel:
+          type: boolean
+          description: Define se o produto é exibido na área pública (RF-A06 / RN-G05)
+          default: true
+        categoria_id:
+          type: integer
+          format: int64
+          description: ID da categoria associada ao produto (RF-A09)
+          example: 1
+
+    ProdutoResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        nome:
+          type: string
+        descricao:
+          type: string
+        foto:
+          type: string
+        preco:
+          type: number
+          format: float
+        disponivel:
+          type: boolean
+        categoria:
+          $ref: '#/components/schemas/CategoriaResponse'
+
+    DisponibilidadeRequest:
+      type: object
+      required:
+        - disponivel
+      properties:
+        disponivel:
+          type: boolean
+          description: "true = Disponível (exibido na área pública) | false = Indisponível (oculto)"
+          example: false
