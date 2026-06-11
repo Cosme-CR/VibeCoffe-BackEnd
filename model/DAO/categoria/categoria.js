@@ -125,6 +125,8 @@ async function deleteCategoria(id) {
         }else{return false}
 
     } catch (error) {
+        console.log(error)
+
         return false
     }
     

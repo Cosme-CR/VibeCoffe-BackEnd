@@ -23,14 +23,16 @@ async function insertProduto(produto){
                             descricao, 
                             foto, 
                             preco, 
-                            statu 
+                            status,
+                            id_categoria 
                         )
                     values(
                             '${produto.nome}',
                             '${produto.descricao}',
                             '${produto.foto}',
                             '${produto.preco}',
-                            '${produto.statu}'
+                            '${produto.status}',
+                            '${produto.id_categoria}'
                             ); `
         
         //executa o scriptSQL no banco de dados
@@ -40,7 +42,7 @@ async function insertProduto(produto){
             return result[0].insertId// retorna o id 
         }else{return false}
     } catch (error) {
-        //console.log(error)//erro 500 descomentar essa linha
+        console.log(error)//erro 500 descomentar essa linha
         return false
     }
 
@@ -55,19 +57,29 @@ async function updateProduto(produto) {
 
 
     try {
-        //script para atualizar dados no BD
-        let sql =`update tbl_produto set
+    let sql = `
+        UPDATE tbl_produto SET
+            nome = ?, 
+            descricao = ?,
+            foto = ?,
+            preco = ?,
+            status = ?,
+            id_categoria = ?
+        WHERE id = ?
+    `;
 
-            nome        =  '${produto.nome}', 
-            descricao   =  '${produto.descricao}',
-            foto        =  '${produto.foto}',
-            preco       =  '${produto.preco}',
-            statu       =  '${produto.statu}'
-           
-            where id = ${produto.id}`
+    // Os valores do array substituem as '?' na ordem exata em que aparecem
+    let result = await knexConex.raw(sql, [
+        produto.nome,
+        produto.descricao,
+        produto.foto,
+        produto.preco,
+        produto.status,
+        produto.id_categoria,
+        produto.id
+    ]);
 
-        //executa o script acima de
-        let result = await knexConex.raw(sql)
+    // ... restante do código
         
         if (result) {
             return true
@@ -137,6 +149,7 @@ async function deleteProduto(id) {
         }else{return false}
 
     } catch (error) {
+        console.log(error)
         return false
     }
     
