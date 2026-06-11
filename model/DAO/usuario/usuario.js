@@ -1,6 +1,6 @@
 /* 
-* objetivo: arquivo responsavel pelo CRUD no banco de dados MySQL na tabela produto
-* Data:       10/06/2026
+* objetivo: arquivo responsavel pelo CRUD no banco de dados MySQL na tabela usuario
+* Data:       11/06/2026
 * Autor :     cosme
 * Versao:     1.0  
 
@@ -13,22 +13,21 @@ const knexConfig    = require('../../database_config_knex/knexFile.js')
 //cria a conexao com o banco de dados
 const knexConex     = knex(knexConfig.development)
 
-//funcao para inserir dados na tabela de produto 
-async function insertProduto(produto){
+//funcao para inserir dados na tabela de usuario 
+async function insertUsuario(usuario){
 
     try {
-        //script pra inserir produto no banco de dados
-        let sql = `insert into tbl_produto(
+        //script pra inserir usuario no banco de dados
+        let sql = `insert into tbl_usuario(
                             nome, 
-                            descricao, 
-                            foto,  
-                            status
+                            usuario, 
+                            senha  
+                            
                         )
                     values(
-                            '${produto.nome}',
-                            '${produto.descricao}',
-                            '${produto.foto}',
-                            '${produto.status}'
+                            '${usuario.nome}',
+                            '${usuario.usuario}',
+                            '${usuario.senha}'
                             ); `
         
         //executa o scriptSQL no banco de dados
@@ -48,28 +47,28 @@ async function insertProduto(produto){
 
 
 
-//função para atualiza um produto existente na tabela
-async function updateProduto(produto) {
+//função para atualiza um usuario existente na tabela
+async function updateUsuario(usuario) {
 
 
     try {
     let sql = `
-        UPDATE tbl_produto SET
+        UPDATE tbl_usuario SET
             nome = ?, 
-            descricao = ?,
-            foto = ?,
-            status = ?
+            usuario = ?,
+            senha = ?
         WHERE id = ?
     `;
 
-    // Os valores do array substituem as '?' na ordem exata em que aparecem
+    // Os valores do array substituem as '?' na ordem  em que aparecem
     let result = await knexConex.raw(sql, [
-        produto.nome,
-        produto.descricao,
-        produto.foto,
-        produto.status,
-        produto.id
+        usuario.nome,
+        usuario.usuario,
+        usuario.senha,
+        usuario.id
     ]);
+
+    
         
         if (result) {
             return true
@@ -84,10 +83,10 @@ async function updateProduto(produto) {
 }
 
 //funcao para retornar todos os dados da tabela de produto
-async function selectAllProduto() {
+async function selectAllUsuario() {
     try {
-        //script select pra ver todos os filmes
-        let sql = `select * from tbl_produto order by id desc`
+        //script select pra ver todos os usuario
+        let sql = `select * from tbl_usuario order by id desc`
 
         // executa o script no banco
         let result = await knexConex.raw(sql)
@@ -108,11 +107,11 @@ async function selectAllProduto() {
 }
 
 
-//função para retornar os dados do Produto filtrando pelo id
-async function selectByIdProduto(id) {
+//função para retornar os dados do usuario filtrando pelo id
+async function selectByIdUsuario(id) {
     try {
         // faz busca no banco de dados pelo id 
-        let sql = `select * from tbl_produto where id=${id}`
+        let sql = `select * from tbl_usuario where id=${id}`
 
         let result = await knexConex.raw(sql)
         if (Array.isArray(result)) {
@@ -127,11 +126,11 @@ async function selectByIdProduto(id) {
     
 }
 
-//funcao pra excluir um Produto pelo id
-async function deleteProduto(id) {
+//funcao pra excluir um usuario pelo id
+async function deleteUsuario(id) {
     try {
-        let sql = `DELETE FROM tbl_produto 
-	                    WHERE id = ${id};`
+        let sql = `DELETE FROM tbl_usuario 
+                        WHERE id = ${id};`
 
         let result = await knexConex.raw(sql)
         if(result){
@@ -146,10 +145,10 @@ async function deleteProduto(id) {
 } 
 
 module.exports = {
-    insertProduto,
-    updateProduto,
-    selectAllProduto,
-    selectByIdProduto,
-    deleteProduto
+    insertUsuario,
+    updateUsuario,
+    selectAllUsuario,
+    selectByIdUsuario,
+    deleteUsuario
 
 }

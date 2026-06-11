@@ -1,5 +1,5 @@
 /*****************************************************************************************
- * Objetivo:    Arquivo responsável pela validação, tratamento e manipulação dos dados para o CRUD de produtos.
+ * Objetivo:    Arquivo responsável pela validação, tratamento e manipulação dos dados para o CRUD de usuario.
  * Data:        10/06/2026
  * Autor:       Cosme Ribeiro
  * Versão:      1.0
@@ -9,15 +9,15 @@
 const config_message = require("../modulo/configMessages.js")
 
 // Import do DAO de produto
-const ProdutoDAO = require("../../model/DAO/produto/produto.js")
+const usuarioDAO = require("../../model/DAO/usuario/usuario.js")
 
 
 
 
 /*****************************************************************************************
- * Função responsável por inserir um novo produto
+ * Função responsável por inserir um novo usuario
  *****************************************************************************************/
-async function inserirNovoProduto(produto, contentType) {
+async function inserirNovoUsuario(usuario, contentType) {
 
     // Cria uma cópia do objeto de mensagens para evitar alterações no original
     let message = JSON.parse(JSON.stringify(config_message))
@@ -28,20 +28,20 @@ async function inserirNovoProduto(produto, contentType) {
         if (String(contentType).toLocaleLowerCase()== 'application/json') {
             
             // Realiza a validação dos dados recebidos
-            let validar = await validarDados(produto)
+            let validar = await validarDados(usuario)
 
             // Caso exista erro na validação, retorna a mensagem correspondente
             if (validar) {
                 return validar
             }else{
                 // Encaminha os dados para o DAO realizar a inserção no banco
-                let result = await ProdutoDAO.insertProduto(produto)
+                let result = await usuarioDAO.insertUsuario(usuario)
 
                 // Verifica se o DAO retornou sucesso
                 if (result) {
 
                     // Adiciona ao objeto o ID gerado pelo banco de dados
-                    produto.id = result
+                    usuario.id = result
 
                     // Configura a mensagem de sucesso
                     message.DEFAULT_MESSAGE.status          = message.SUCCESS_CREATED_ITEM.status
@@ -49,7 +49,7 @@ async function inserirNovoProduto(produto, contentType) {
                     message.DEFAULT_MESSAGE.message         = message.SUCCESS_CREATED_ITEM.message
 
                     // Adiciona os dados inseridos ao retorno
-                    message.DEFAULT_MESSAGE.response = produto
+                    message.DEFAULT_MESSAGE.response = usuario
 
                 } else {
 
@@ -69,17 +69,17 @@ async function inserirNovoProduto(produto, contentType) {
 
 
 /*****************************************************************************************
- * Função responsável por listar todos os produtos cadastrados
+ * Função responsável por listar todos os usuarios cadastrados
  *****************************************************************************************/
-async function listarProdutos() {
+async function listarUsuarios() {
 
     // Cria uma cópia do objeto de mensagens para evitar alterações no original
     let message = JSON.parse(JSON.stringify(config_message))
 
 
     try {
-        // Solicita ao DAO a lista completa de produtos cadastrados
-        let result = await ProdutoDAO.selectAllProduto()
+        // Solicita ao DAO a lista completa de usuarios cadastrados
+        let result = await usuarioDAO.selectAllUsuario()
 
         // Verifica se o DAO conseguiu processar a consulta
         if (result) {
@@ -92,8 +92,8 @@ async function listarProdutos() {
                 // Adiciona a quantidade de registros encontrados
                 message.DEFAULT_MESSAGE.response.count = result.length
 
-                // Adiciona a lista de produtos ao retorno
-                message.DEFAULT_MESSAGE.response.produto = result
+                // Adiciona a lista de usuarios ao retorno
+                message.DEFAULT_MESSAGE.response.usuario = result
 
                 return message.DEFAULT_MESSAGE
             }else{
@@ -111,9 +111,9 @@ async function listarProdutos() {
 }
 
 /*****************************************************************************************
- * Função responsável por buscar um produto através do ID
+ * Função responsável por buscar um usuario através do ID
  *****************************************************************************************/
-async function buscarProduto(id) {
+async function buscarUsuario(id) {
 
     let message = JSON.parse(JSON.stringify(config_message))
     
@@ -123,14 +123,14 @@ async function buscarProduto(id) {
             message.ERROR_BAD_REQUEST.field = "[ID] invalido"
             return message.ERROR_BAD_REQUEST
         } else {
-            // Solicita ao DAO a busca do produto pelo ID
-            let result = await ProdutoDAO.selectByIdProduto(id)
+            // Solicita ao DAO a busca do usuario pelo ID
+            let result = await usuarioDAO.selectByIdUsuario(id)
 
 
             // Verifica se a consulta foi executada com sucesso
             if (result) {
 
-                // Verifica se o produto foi encontrado
+                // Verifica se o usuario foi encontrado
                 if (result.length > 0) {
                         
                     // Configura a resposta de sucesso
@@ -138,7 +138,7 @@ async function buscarProduto(id) {
                     message.DEFAULT_MESSAGE.status_code = message.SUCCESS_RESPONSE.status_code
 
                     // Adiciona os dados encontrados ao retorno
-                    message.DEFAULT_MESSAGE.response.produto = result
+                    message.DEFAULT_MESSAGE.response.usuario = result
 
                     return message.DEFAULT_MESSAGE
                 }else{
@@ -154,9 +154,9 @@ async function buscarProduto(id) {
 }
 
 /*****************************************************************************************
- * Função responsável por atualizar um produto existente
+ * Função responsável por atualizar um usuario existente
  *****************************************************************************************/
-async function atualizarProduto(produto, id, contentType) {
+async function atualizarUsuario(usuario, id, contentType) {
 
     // Cria uma cópia do objeto de mensagens para evitar alterações no original
     let message = JSON.parse(JSON.stringify(config_message))
@@ -165,21 +165,21 @@ async function atualizarProduto(produto, id, contentType) {
         // Valida se o Content-Type da requisição é JSON
         if (String(contentType).toLocaleLowerCase() == 'application/json') {
 
-            // Verifica se o produto existe antes da atualização
-            let resultBuscarId = await buscarProduto(id)
+            // Verifica se o usuario existe antes da atualização
+            let resultBuscarId = await buscarUsuario(id)
 
             if (resultBuscarId.status) {
 
                 // Valida os dados recebidos
-                let validar = await validarDados(produto)
+                let validar = await validarDados(usuario)
 
                 if (!validar) {
                     
                     // Adiciona o ID ao objeto para atualização
-                    produto.id = id
+                    usuario.id = id
 
-                    // Solicita ao DAO a atualização do produto
-                    let result = await ProdutoDAO.updateProduto(produto)
+                    // Solicita ao DAO a atualização do usuario
+                    let result = await usuarioDAO.updateUsuario(usuario)
 
                     if (result) {
 
@@ -189,7 +189,7 @@ async function atualizarProduto(produto, id, contentType) {
                         message.DEFAULT_MESSAGE.message = message.SUCCESS_UPDATE_ITEM.message
 
                         // Adiciona os dados atualizados ao retorno
-                        message.DEFAULT_MESSAGE.response = produto
+                        message.DEFAULT_MESSAGE.response = usuario
 
                         return message.DEFAULT_MESSAGE
 
@@ -216,22 +216,22 @@ async function atualizarProduto(produto, id, contentType) {
 }
 
 /*****************************************************************************************
- * Função responsável por excluir um produto
+ * Função responsável por excluir um usuario
  *****************************************************************************************/
-async function apagarProduto(id) {
+async function apagarUsuario(id) {
 
     // Cria uma cópia do objeto de mensagens para evitar alterações no original
     let message = JSON.parse(JSON.stringify(config_message))
 
     try {
 
-        // Verifica se o produto existe antes da exclusão
-        let resultBuscarId = await buscarProduto(id)
+        // Verifica se o usuario existe antes da exclusão
+        let resultBuscarId = await buscarUsuario(id)
 
         if (resultBuscarId.status) {
 
-            // Solicita ao DAO a exclusão do produto
-            let result = await ProdutoDAO.deleteProduto(id)
+            // Solicita ao DAO a exclusão do usuario
+            let result = await usuarioDAO.deleteUsuario(id)
 
             if (result) {
 
@@ -255,52 +255,45 @@ async function apagarProduto(id) {
 
 
 /*****************************************************************************************
- * Função responsável por validar os dados do produto
+ * Função responsável por validar os dados do usuario
  *****************************************************************************************/
-async function validarDados(produto) {
+async function validarDados(usuario) {
 
     // Cria uma cópia do objeto de mensagens para evitar alterações no original
     let message = JSON.parse(JSON.stringify(config_message))
 
     // VALIDA NOME
     if (
-        produto.nome        == undefined ||
-        produto.nome        == ""        ||
-        produto.nome        == null      ||
-        produto.nome.length >  50
+        usuario.nome        == undefined ||
+        usuario.nome        == ""        ||
+        usuario.nome        == null      ||
+        usuario.nome.length >  50
     ) {
 
         message.ERROR_BAD_REQUEST.field = "[NOME] invalido"
         return message.ERROR_BAD_REQUEST
 
-    // VALIDA DESCRIÇÃO
+
+    // VALIDA USUARIO
     } else if (
-        produto.descricao == undefined ||
-        produto.descricao == ""        ||
-        produto.descricao == null
+        usuario.usuario        == undefined ||
+        usuario.usuario        == ""        ||
+        usuario.usuario        == null      ||
+        usuario.usuario.length > 100
     ) {
 
-        message.ERROR_BAD_REQUEST.field = "[DESCRICAO] invalida"
+        message.ERROR_BAD_REQUEST.field = "[USUARIO] invalida"
         return message.ERROR_BAD_REQUEST
 
-    // VALIDA FOTO
+    // VALIDA SENHA
     } else if (
-        produto.foto        == undefined ||
-        produto.foto        == ""        ||
-        produto.foto        == null      ||
-        produto.foto.length > 254
+        usuario.senha        == undefined ||
+        usuario.senha        == ""        ||
+        usuario.senha        == null      ||
+        usuario.senha.length > 254
     ) {
 
-        message.ERROR_BAD_REQUEST.field = "[FOTO] invalida"
-        return message.ERROR_BAD_REQUEST
-
-    // VALIDA STATUS
-    } else if (
-        produto.status == undefined ||
-        produto.status == null
-    ) {
-
-        message.ERROR_BAD_REQUEST.field = "[STATUS] invalido"
+        message.ERROR_BAD_REQUEST.field = "[SENHA] invalida"
         return message.ERROR_BAD_REQUEST
 
     } else {
@@ -315,18 +308,10 @@ async function validarDados(produto) {
  * Exportação das funções da controller
  *****************************************************************************************/
 module.exports = {
-    inserirNovoProduto,
-    listarProdutos,
-    buscarProduto,
-    atualizarProduto,
-    apagarProduto
+    inserirNovoUsuario,
+    listarUsuarios,
+    buscarUsuario,
+    atualizarUsuario,
+    apagarUsuario
 }
-
-
-
-
-
-
-
-
 
